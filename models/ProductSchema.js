@@ -21,10 +21,12 @@ const Schema = mongoose.Schema({
   quantity: {
     type: Number,
     required: false,
+    default: 0,
   },
   category: {
     type: String,
     required: false,
+    default: "Uncategorized",
   },
 });
 

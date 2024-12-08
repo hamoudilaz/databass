@@ -1,21 +1,27 @@
 import request from "supertest";
 import app from "../app.js";
 import mongoose from "mongoose";
+import dotenv from "dotenv";
 import Product from "../models/ProductSchema.js";
+
+dotenv.config();
 
 beforeEach(async () => {
   try {
-    await mongoose.connect("mongodb://127.0.0.1:27017/testProductsDb", {
+    // Connect to the database using the connection string from .env
+    await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
+    Product.deleteMany();
     await Product.insertMany([
       {
         name: "The Hobbit",
         description: "Fantasy book",
         isbn: "12345",
         price: 150,
+        quantity: 10,
         category: "Fantasy",
       },
       {
@@ -23,16 +29,18 @@ beforeEach(async () => {
         description: "Dystopian book",
         isbn: "67890",
         price: 200,
+        quantity: 5,
         category: "Dystopian",
       },
     ]);
   } catch (err) {
-    console.error(err);
+    console.error("Error in beforeEach:", err);
     process.exit(1);
   }
 });
 
 afterEach(async () => {
+  // Clean up the database and disconnect
   await mongoose.connection.dropDatabase();
   await mongoose.connection.close();
 });
@@ -80,5 +88,28 @@ describe("Product API Tests", () => {
     const resp = await request(app).delete(`/api/products/${product._id}`);
     expect(resp.statusCode).toBe(200);
     expect(resp.body.message).toBe("Product deleted successfully");
+  });
+
+  test("GET /api/products/search - should fetch products based on a query", async () => {
+    const resp = await request(app).get("/api/products/search?price=0");
+    expect(resp.statusCode).toBe(200);
+    expect(resp.body.length).toBeGreaterThanOrEqual(0);
+  });
+
+  test("DELETE /api/products - should delete all products", async () => {
+    const resp = await request(app).delete("/api/products");
+    expect(resp.statusCode).toBe(200);
+    expect(resp.body.message).toBe("All products have been deleted");
+
+    const products = await Product.find();
+    expect(products.length).toBe(0);
+  });
+
+  test("GET / - should fetch HTML with product list", async () => {
+    const resp = await request(app).get("/");
+    expect(resp.statusCode).toBe(200);
+    expect(resp.text).toContain("Product List");
+    expect(resp.text).toContain("The Hobbit");
+    expect(resp.text).toContain("1984");
   });
 });

@@ -11,12 +11,12 @@ router.get("/api/products", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
+// Söker
 router.get("/api/products/search", async (req, res) => {
   try {
-    const querySearch = "KW";
+    const priceFilter = req.query.price || 0;
     const products = await Product.find({
-      name: { $regex: querySearch, $options: "i" },
+      price: { $gt: priceFilter },
     });
     res.status(200).json(products);
   } catch (error) {
@@ -86,7 +86,7 @@ router.delete("/api/products/:id", async (req, res) => {
   }
 });
 
-router.get("/products", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const products = await Product.find();
     let html = `
@@ -131,7 +131,7 @@ router.get("/products", async (req, res) => {
           <td>${product.name}</td>
           <td>${product.description}</td>
           <td>${product.price}</td>
-          <td>${product.quantity || "N/A"}</td>
+          <td>${product.quantity || "Unknown"}</td>
           <td>${product.category}</td>
         </tr>
       `;
